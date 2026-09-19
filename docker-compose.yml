@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: smart_home_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - MAX_BOT_TOKEN=${MAX_BOT_TOKEN}
+    networks:
+      - app-network
+
+  frontend:
+    build: ./frontend
+    container_name: smart_home_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
