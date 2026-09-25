@@ -1,15 +1,12 @@
 import os
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Literal, Dict, Any, List
-
 import httpx
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="МойДом MAX API", version="4.0.0")
@@ -24,7 +21,6 @@ app.add_middleware(
 
 MAX_BOT_TOKEN = os.getenv("MAX_BOT_TOKEN", "")
 MAX_DEMO_CHAT_ID = os.getenv("MAX_DEMO_CHAT_ID", "")
-
 BASE_DIR = Path(__file__).parent
 UPLOADS_DIR = BASE_DIR / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
@@ -45,62 +41,120 @@ def to_float(x: Any, default: float = 0.0) -> float:
 
 UserItemType = Literal["fixed", "meter"]
 
-AUTO_ITEMS: List[Dict[str, Any]] = [
+AUTO_ITEMS_INIT: List[Dict[str, Any]] = [
     {"id": 1, "name": "Содержание жилого помещения", "item_type": "auto", "unit": "₽", "sum": 1650.00, "locked": True},
     {"id": 2, "name": "Взнос на капитальный ремонт", "item_type": "auto", "unit": "₽", "sum": 580.00, "locked": True},
     {"id": 3, "name": "Домофон", "item_type": "auto", "unit": "₽", "sum": 85.00, "locked": True},
     {"id": 4, "name": "Обращение с ТКО", "item_type": "auto", "unit": "₽", "sum": 320.00, "locked": True},
 ]
 
-bill_state: Dict[str, Any] = {
-    "period": "Сентябрь 2026",
-    "account": "—",
-    "address": "Белгородская область, —, —",
-    "paid": False,
-    "paid_at": None,
-    "receipt_label": None,
-    "user_items": []
-}
-
-house_store: Dict[str, Any] = {
-    "address": "Белгородская область, —, —",
-    "updated_at": "2026-09-19T09:10:00",
-    "systems": [
-        {"id": 1, "name": "Электроснабжение", "status": "Штатно", "badge": "ok"},
-        {"id": 2, "name": "Лифт", "status": "Штатно", "badge": "ok"},
-        {"id": 3, "name": "Холодное водоснабжение (ХВС)", "status": "Штатно", "badge": "ok"},
-        {"id": 4, "name": "Горячее водоснабжение (ГВС)", "status": "Штатно", "badge": "ok"},
-        {"id": 5, "name": "Газоснабжение", "status": "Штатно", "badge": "ok"},
-        {"id": 6, "name": "Отопление", "status": "Отключено до 15 октября (межотопительный период)", "badge": "info"},
-    ],
-    "waste": {
-        "tko_schedule": "Пн, Ср, Пт, ориентировочно 09:00",
-        "containers_status": "Норма",
-        "last_update": "2026-09-19T09:10:00"
+def get_initial_bill():
+    return {
+        "period": "Сентябрь 2026",
+        "account": "4081-7810-9021",
+        "address": "Белгородская обл., г. Белгород, пр-кт Славы, д. 45",
+        "paid": False,
+        "paid_at": None,
+        "receipt_label": None,
+        "user_items": []
     }
-}
 
+def get_initial_house():
+    return {
+        "address": "Белгородская обл., г. Белгород, пр-кт Славы, д. 45",
+        "updated_at": "2026-09-19T09:10:00",
+        "systems": [
+            {"id": 1, "name": "Электроснабжение", "status": "Штатно", "badge": "ok"},
+            {"id": 2, "name": "Лифт", "status": "Штатно", "badge": "ok"},
+            {"id": 3, "name": "Холодное водоснабжение (ХВС)", "status": "Штатно", "badge": "ok"},
+            {"id": 4, "name": "Горячее водоснабжение (ГВС)", "status": "Штатно", "badge": "ok"},
+            {"id": 5, "name": "Газоснабжение", "status": "Штатно", "badge": "ok"},
+            {"id": 6, "name": "Отопление", "status": "Отключено до 15 октября (межотопительный период)", "badge": "info"},
+        ],
+        "waste": {
+            "tko_schedule": "Пн, Ср, Пт, ориентировочно 09:00",
+            "containers_status": "Норма",
+            "last_update": "2026-09-19T09:10:00"
+        }
+    }
+
+def get_initial_chat():
+    return [
+        {
+            "id": 1,
+            "created_at": "2026-09-19T08:15:00",
+            "author": "ТСЖ «Уютный Дом»",
+            "text": "Уважаемые жильцы! Завтра с 10:00 до 12:00 будет проводиться плановая проверка систем вентиляции и дымоудаления."
+        },
+        {
+            "id": 2,
+            "created_at": "2026-09-19T08:22:10",
+            "author": "Мария (кв. 18)",
+            "text": "Соседи, добрый день! Подскажите, во 2 подъезде у всех горячая вода идет с нормальным напором?"
+        },
+        {
+            "id": 3,
+            "created_at": "2026-09-19T08:24:45",
+            "author": "Алексей (кв. 42)",
+            "text": "Здравствуйте! У нас в 3 подъезде всё в порядке, напор отличный."
+        },
+        {
+            "id": 4,
+            "created_at": "2026-09-19T08:30:00",
+            "author": "Диспетчерская служба",
+            "text": "Напоминаем, что показания индивидуальных приборов учёта принимаются до 25 числа включительно."
+        },
+        {
+            "id": 5,
+            "created_at": "2026-09-19T08:35:12",
+            "author": "Елена (кв. 7)",
+            "text": "Спасибо за информацию!"
+        }
+    ]
+
+def get_initial_polls():
+    return [
+        {
+            "id": 1,
+            "title": "Установка шлагбаума и системы видеонаблюдения во дворе",
+            "deadline": "15.09.2026 (Завершён)",
+            "is_closed": True,
+            "options": [
+                {"id": 1, "text": "Да", "votes": 13},
+                {"id": 2, "text": "Нет", "votes": 7}
+            ],
+            "user_votes": {"flat_14": 1}
+        },
+        {
+            "id": 2,
+            "title": "Установить специальный ящик для сбора батареек на 1 этаже?",
+            "deadline": "30.09.2026",
+            "is_closed": False,
+            "options": [
+                {"id": 1, "text": "Да", "votes": 8},
+                {"id": 2, "text": "Нет", "votes": 2}
+            ],
+            "user_votes": {}
+        },
+        {
+            "id": 3,
+            "title": "Сделать освещение в подъезде автоматическим (датчики движения)?",
+            "deadline": "30.09.2026",
+            "is_closed": False,
+            "options": [
+                {"id": 1, "text": "Да", "votes": 11},
+                {"id": 2, "text": "Нет", "votes": 1}
+            ],
+            "user_votes": {}
+        }
+    ]
+
+bill_state: Dict[str, Any] = get_initial_bill()
+house_store: Dict[str, Any] = get_initial_house()
 requests_store: List[Dict[str, Any]] = []
-chat_store: List[Dict[str, Any]] = []
-
-polls_store: List[Dict[str, Any]] = [
-    {
-        "id": 1,
-        "title": "Установить специальный ящик для сбора батареек на 1 этаже?",
-        "deadline": "30.09.2026",
-        "options": [{"id": 1, "text": "Да", "votes": 0}, {"id": 2, "text": "Нет", "votes": 0}],
-        "user_votes": {}
-    },
-    {
-        "id": 2,
-        "title": "Сделать освещение в подъезде автоматическим (датчики движения)?",
-        "deadline": "30.09.2026",
-        "options": [{"id": 1, "text": "Да", "votes": 0}, {"id": 2, "text": "Нет", "votes": 0}],
-        "user_votes": {}
-    }
-]
-
-counters = {"user_item_id": 100, "request": 0, "chat": 0, "receipt": 0}
+chat_store: List[Dict[str, Any]] = get_initial_chat()
+polls_store: List[Dict[str, Any]] = get_initial_polls()
+counters = {"user_item_id": 100, "request": 0, "chat": 5, "receipt": 0}
 
 class UserBillItemCreate(BaseModel):
     name: str
@@ -134,7 +188,7 @@ def calc_user_item_sum(item: Dict[str, Any]) -> float:
 
 def calc_total_unpaid() -> float:
     total = 0.0
-    for a in AUTO_ITEMS:
+    for a in AUTO_ITEMS_INIT:
         total += to_float(a.get("sum", 0.0))
     for u in bill_state["user_items"]:
         total += calc_user_item_sum(u)
@@ -156,6 +210,20 @@ async def try_send_to_max(text: str) -> bool:
     except Exception:
         return False
 
+@app.post("/api/reset")
+def reset_all():
+    global bill_state, house_store, requests_store, chat_store, polls_store, counters
+    bill_state = get_initial_bill()
+    house_store = get_initial_house()
+    requests_store = []
+    chat_store = get_initial_chat()
+    polls_store = get_initial_polls()
+    counters["user_item_id"] = 100
+    counters["request"] = 0
+    counters["chat"] = 5
+    counters["receipt"] = 0
+    return {"success": True, "message": "Данные успешно сброшены к начальному состоянию"}
+
 @app.get("/api/bill")
 def get_bill():
     if bill_state["paid"]:
@@ -169,14 +237,11 @@ def get_bill():
             "items": [],
             "total_sum": 0.0
         }
-
     items = []
-    for a in AUTO_ITEMS:
+    for a in AUTO_ITEMS_INIT:
         items.append({**a, "sum": round(to_float(a.get("sum", 0.0)), 2)})
-
     for u in bill_state["user_items"]:
         items.append({**u, "sum": calc_user_item_sum(u)})
-
     return {
         "period": bill_state["period"],
         "account": bill_state["account"],
@@ -192,7 +257,6 @@ def get_bill():
 def add_user_bill_item(body: UserBillItemCreate):
     if bill_state["paid"]:
         raise HTTPException(status_code=409, detail="Bill already paid")
-
     if body.item_type == "fixed":
         if body.quantity is None:
             raise HTTPException(status_code=400, detail="quantity is required for fixed item")
@@ -219,7 +283,6 @@ def add_user_bill_item(body: UserBillItemCreate):
             "current_reading": float(curr),
             "locked": False
         }
-
     counters["user_item_id"] = item["id"]
     bill_state["user_items"].append(item)
     return get_bill()
@@ -228,10 +291,8 @@ def add_user_bill_item(body: UserBillItemCreate):
 def patch_user_bill_item(item_id: int, body: UserBillItemPatch):
     if bill_state["paid"]:
         raise HTTPException(status_code=409, detail="Bill already paid")
-
     if item_id < 100:
         raise HTTPException(status_code=403, detail="Auto items are locked")
-
     for u in bill_state["user_items"]:
         if u["id"] == item_id:
             if body.tariff is not None:
@@ -243,17 +304,14 @@ def patch_user_bill_item(item_id: int, body: UserBillItemPatch):
                 if body.current_reading is not None:
                     u["current_reading"] = float(body.current_reading)
             return get_bill()
-
     raise HTTPException(status_code=404, detail="Item not found")
 
 @app.delete("/api/bill/items/{item_id}")
 def delete_user_bill_item(item_id: int):
     if bill_state["paid"]:
         raise HTTPException(status_code=409, detail="Bill already paid")
-
     if item_id < 100:
         raise HTTPException(status_code=403, detail="Auto items are locked")
-
     bill_state["user_items"] = [x for x in bill_state["user_items"] if x["id"] != item_id]
     return get_bill()
 
@@ -261,17 +319,13 @@ def delete_user_bill_item(item_id: int):
 async def pay_bill():
     if bill_state["paid"]:
         return get_bill()
-
     total = calc_total_unpaid()
     bill_state["paid"] = True
     bill_state["paid_at"] = "2026-09"
     bill_state["receipt_label"] = make_receipt_label()
-
     bill_state["user_items"] = []
-
     text = f"{bill_state['receipt_label']}. ЖКУ оплачены: {total:.2f} ₽. Период: {bill_state['period']}."
     await try_send_to_max(text)
-
     return get_bill()
 
 @app.get("/api/house")
@@ -286,12 +340,11 @@ def get_requests():
 async def create_request(
     category: str = Form(...),
     text: str = Form(...),
-    user_id: str = Form("resident"),
+    user_id: str = Form("flat_14"),
     photo: Optional[UploadFile] = File(None)
 ):
     counters["request"] += 1
     req_id = counters["request"]
-
     photo_url = None
     if photo is not None:
         ext = Path(photo.filename).suffix.lower()[:10] if photo.filename else ""
@@ -299,7 +352,6 @@ async def create_request(
         dst = UPLOADS_DIR / filename
         dst.write_bytes(await photo.read())
         photo_url = f"/uploads/{filename}"
-
     item = {
         "id": req_id,
         "created_at": ts(),
@@ -337,8 +389,13 @@ def post_chat(msg: ChatMessageCreate):
 @app.delete("/api/chat/{msg_id}")
 def delete_chat(msg_id: int):
     global chat_store
-    chat_store = [m for m in chat_store if m["id"] != msg_id]
-    return {"success": True}
+    for m in chat_store:
+        if m["id"] == msg_id:
+            if not str(m.get("author", "")).startswith("Вы"):
+                raise HTTPException(status_code=403, detail="Удалять можно только свои сообщения")
+            chat_store = [x for x in chat_store if x["id"] != msg_id]
+            return {"success": True}
+    raise HTTPException(status_code=404, detail="Сообщение не найдено")
 
 @app.get("/api/polls")
 def get_polls(user_id: str = Query("flat_14")):
@@ -352,24 +409,24 @@ def get_polls(user_id: str = Query("flat_14")):
 def vote_poll(poll_id: int, body: PollVoteBody):
     for p in polls_store:
         if p["id"] == poll_id:
+            if p.get("is_closed", False):
+                raise HTTPException(status_code=400, detail="Голосование уже завершено")
             prev = p["user_votes"].get(body.user_id)
-            if prev is not None and prev != body.option_id:
-                for opt in p["options"]:
-                    if opt["id"] == prev and opt["votes"] > 0:
-                        opt["votes"] -= 1
-            if prev != body.option_id:
-                for opt in p["options"]:
-                    if opt["id"] == body.option_id:
-                        opt["votes"] += 1
-                        p["user_votes"][body.user_id] = body.option_id
-                        return {"success": True}
+            if prev is not None:
+                raise HTTPException(status_code=400, detail="Сначала отмените текущий голос, чтобы выбрать другой вариант")
+            for opt in p["options"]:
+                if opt["id"] == body.option_id:
+                    opt["votes"] += 1
+            p["user_votes"][body.user_id] = body.option_id
             return {"success": True}
-    raise HTTPException(status_code=404, detail="poll not found")
+    raise HTTPException(status_code=404, detail="Опрос не найден")
 
 @app.delete("/api/polls/{poll_id}/vote")
 def unvote_poll(poll_id: int, user_id: str = Query("flat_14")):
     for p in polls_store:
         if p["id"] == poll_id:
+            if p.get("is_closed", False):
+                raise HTTPException(status_code=400, detail="Голосование завершено, изменение невозможно")
             prev = p["user_votes"].get(user_id)
             if prev is None:
                 return {"success": True}
@@ -378,24 +435,17 @@ def unvote_poll(poll_id: int, user_id: str = Query("flat_14")):
                     opt["votes"] -= 1
             del p["user_votes"][user_id]
             return {"success": True}
-    raise HTTPException(status_code=404, detail="poll not found")
+    raise HTTPException(status_code=404, detail="Опрос не найден")
 
-# --- БЛОК РАЗДАЧИ ФРОНТЕНДА ---
-# Определение пути к скомпилированной папке dist во frontend
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
-
 if os.path.exists(frontend_dist):
-    # Монтируем статические ресурсы (JS, CSS, картинки)
     assets_path = os.path.join(frontend_dist, "assets")
     if os.path.exists(assets_path):
         app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
 
-    # Все остальные маршруты перенаправляем на index.html (для работы React-роутинга)
     @app.get("/{full_path:path}")
     async def catch_all(full_path: str):
-        # Если запрашивается конкретный файл из dist (например, favicon.ico)
         file_path = os.path.join(frontend_dist, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return FileResponse(file_path)
-        # В противном случае отдаем главный index.html
         return FileResponse(os.path.join(frontend_dist, "index.html"))

@@ -1,0 +1,108 @@
+version: "3.1.0"
+team: "МойДом"
+base_url: "https://platform-api2.max.ru"
+checks:
+  - method: "GET"
+    path: "/api/bill"
+    role: "resident"
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["period", "account", "address", "paid", "items", "total_sum"]
+      properties:
+        period:
+          type: "string"
+        account:
+          type: "string"
+        address:
+          type: "string"
+        paid:
+          type: "boolean"
+        total_sum:
+          type: "number"
+        items:
+          type: "array"
+
+  - method: "POST"
+    path: "/api/bill/items"
+    role: "resident"
+    body:
+      name: "Полив придомовой территории"
+      item_type: "fixed"
+      unit: "м³"
+      tariff: 44.5
+      quantity: 2.0
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["items", "total_sum"]
+
+  - method: "POST"
+    path: "/api/bill/pay"
+    role: "resident"
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["paid", "receipt_label", "total_sum"]
+      properties:
+        paid:
+          type: "boolean"
+        receipt_label:
+          type: "string"
+        total_sum:
+          type: "number"
+
+  - method: "GET"
+    path: "/api/house"
+    role: "resident"
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["address", "updated_at", "systems", "waste"]
+      properties:
+        systems:
+          type: "array"
+        waste:
+          type: "object"
+
+  - method: "GET"
+    path: "/api/requests"
+    role: "resident"
+    expected_status: [200]
+    expected_response:
+      type: "array"
+
+  - method: "GET"
+    path: "/api/chat"
+    role: "resident"
+    expected_status: [200]
+    expected_response:
+      type: "array"
+
+  - method: "POST"
+    path: "/api/chat"
+    role: "resident"
+    body:
+      author: "Вы (кв. 14)"
+      text: "Подтверждаю проверку вентиляции."
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["id", "author", "text"]
+
+  - method: "GET"
+    path: "/api/polls"
+    role: "resident"
+    query_params:
+      user_id: "flat_14"
+    expected_status: [200]
+    expected_response:
+      type: "array"
+
+  - method: "POST"
+    path: "/api/reset"
+    role: "resident"
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["success", "message"]
