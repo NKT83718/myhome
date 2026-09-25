@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
     <title>МойДом</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <script src="https://st.max.ru/js/max-web-app.js"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -21,17 +21,25 @@
     </script>
     <script>
       (function() {
-        function initBridge() {
-          var bridge = window.vkBridge || window.maxBridge;
-          if (bridge && bridge.send) {
-            bridge.send('VKWebAppInit');
-            bridge.send('VKWebAppExpand');
+        function setupMaxApp() {
+          if (window.WebApp) {
+            try {
+              if (typeof window.WebApp.ready === 'function') {
+                window.WebApp.ready();
+              }
+              if (typeof window.WebApp.expand === 'function') {
+                window.WebApp.expand();
+              }
+              if (typeof window.WebApp.enableClosingConfirmation === 'function') {
+                window.WebApp.enableClosingConfirmation();
+              }
+            } catch (e) {}
           }
         }
         if (document.readyState === 'complete') {
-          initBridge();
+          setupMaxApp();
         } else {
-          window.addEventListener('load', initBridge);
+          window.addEventListener('load', setupMaxApp);
         }
       })();
     </script>

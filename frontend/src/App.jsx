@@ -100,9 +100,30 @@ export default function App() {
   const [newMsg, setNewMsg] = useState("");
   const chatEndRef = useRef(null);
 
+  const triggerHaptic = (type = "selection") => {
+    try {
+      if (window.WebApp && window.WebApp.HapticFeedback) {
+        if (type === "selection" && window.WebApp.HapticFeedback.selectionChanged) {
+          window.WebApp.HapticFeedback.selectionChanged();
+        } else if (type === "success" && window.WebApp.HapticFeedback.notificationOccurred) {
+          window.WebApp.HapticFeedback.notificationOccurred("success");
+        } else if (type === "error" && window.WebApp.HapticFeedback.notificationOccurred) {
+          window.WebApp.HapticFeedback.notificationOccurred("error");
+        } else if (type === "impact" && window.WebApp.HapticFeedback.impactOccurred) {
+          window.WebApp.HapticFeedback.impactOccurred("medium");
+        }
+      }
+    } catch (e) {}
+  };
+
   const showToast = (text) => {
     setToast(text);
     window.setTimeout(() => setToast(null), 2800);
+  };
+
+  const switchTab = (nextTab) => {
+    triggerHaptic("selection");
+    setTab(nextTab);
   };
 
   const loadBill = async () => {
@@ -142,6 +163,7 @@ export default function App() {
 
   const resetAllData = async () => {
     try {
+      triggerHaptic("impact");
       const r = await fetch(`${API}/reset`, { method: "POST" });
       if (r.ok) {
         await Promise.all([loadBill(), loadHouse(), loadRequests(), loadChat(), loadPolls()]);
@@ -152,6 +174,7 @@ export default function App() {
         showToast("Все данные сброшены к начальному состоянию");
       }
     } catch (e) {
+      triggerHaptic("error");
       showToast("Ошибка связи с сервером");
     }
   };
@@ -223,6 +246,7 @@ export default function App() {
 
   const addBillItem = async () => {
     if (!draft.name.trim()) {
+      triggerHaptic("error");
       showToast("Укажите название услуги");
       return;
     }
@@ -248,9 +272,11 @@ export default function App() {
       body: JSON.stringify(payload),
     });
     if (!r.ok) {
+      triggerHaptic("error");
       showToast("Не удалось добавить услугу");
       return;
     }
+    triggerHaptic("success");
     setBill(await r.json());
     setBillAddOpen(false);
     showToast("Услуга добавлена");
@@ -268,6 +294,7 @@ export default function App() {
   const deleteBillItem = async (id) => {
     const r = await fetch(`${API}/bill/items/${id}`, { method: "DELETE" });
     if (r.ok) {
+      triggerHaptic("impact");
       setBill(await r.json());
       showToast("Услуга удалена");
     }
@@ -276,6 +303,7 @@ export default function App() {
   const payBill = async () => {
     const r = await fetch(`${API}/bill/pay`, { method: "POST" });
     if (r.ok) {
+      triggerHaptic("success");
       setBill(await r.json());
       showToast("Оплачено. Чек сформирован.");
     }
@@ -283,6 +311,7 @@ export default function App() {
 
   const createRequest = async () => {
     if (!reqText.trim()) {
+      triggerHaptic("error");
       showToast("Опишите проблему");
       return;
     }
@@ -294,9 +323,11 @@ export default function App() {
     const r = await fetch(`${API}/requests`, { method: "POST", body: fd });
     const data = await r.json();
     if (!data?.success) {
+      triggerHaptic("error");
       showToast("Не удалось отправить заявку");
       return;
     }
+    triggerHaptic("success");
     setRequests((prev) => [data.request, ...prev]);
     setReqText("");
     setReqPhoto(null);
@@ -306,6 +337,7 @@ export default function App() {
   const cancelRequest = async (id) => {
     await fetch(`${API}/requests/${id}`, { method: "DELETE" });
     await loadRequests();
+    triggerHaptic("impact");
     showToast(`Заявка #${id} отменена`);
   };
 
@@ -317,6 +349,7 @@ export default function App() {
       body: JSON.stringify({ author: "Вы (кв. 8)", text: newMsg }),
     });
     if (r.ok) {
+      triggerHaptic("selection");
       const msg = await r.json();
       setChat((prev) => [...prev, msg]);
       setNewMsg("");
@@ -326,9 +359,11 @@ export default function App() {
   const deleteChat = async (id) => {
     const r = await fetch(`${API}/chat/${id}`, { method: "DELETE" });
     if (r.ok) {
+      triggerHaptic("impact");
       await loadChat();
       showToast("Сообщение удалено");
     } else {
+      triggerHaptic("error");
       const err = await r.json();
       showToast(err.detail || "Не удалось удалить");
     }
@@ -341,9 +376,11 @@ export default function App() {
       body: JSON.stringify({ user_id: USER_ID, option_id: optionId }),
     });
     if (r.ok) {
+      triggerHaptic("success");
       await loadPolls();
       showToast("Голос учтён");
     } else {
+      triggerHaptic("error");
       const err = await r.json();
       showToast(err.detail || "Ошибка голосования");
     }
@@ -354,6 +391,7 @@ export default function App() {
       method: "DELETE",
     });
     if (r.ok) {
+      triggerHaptic("impact");
       await loadPolls();
       showToast("Голос отменён. Теперь вы можете выбрать другой вариант");
     }
@@ -377,7 +415,10 @@ export default function App() {
               </div>
               {!bill.paid && (
                 <button
-                  onClick={() => setBillAddOpen(true)}
+                  onClick={() => {
+                    triggerHaptic("selection");
+                    setBillAddOpen(true);
+                  }}
                   className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-violet-600 text-white text-xs font-bold shadow-md shadow-violet-200 active:scale-95 transition-all"
                 >
                   <Plus className="w-4 h-4" />
@@ -517,7 +558,10 @@ export default function App() {
                 <div className="flex items-center justify-between">
                   <div className="text-lg font-black text-slate-900">Добавить услугу</div>
                   <button
-                    onClick={() => setBillAddOpen(false)}
+                    onClick={() => {
+                      triggerHaptic("selection");
+                      setBillAddOpen(false);
+                    }}
                     className="p-2 rounded-2xl border border-slate-200 text-slate-400 hover:text-slate-600"
                   >
                     <X className="w-5 h-5" />
@@ -663,7 +707,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => {
-                  setTab("requests");
+                  switchTab("requests");
                   setReqCategory("ТКО/контейнеры");
                   setReqText("Контейнерная площадка переполнена, требуется внеочередной вывоз ТКО.");
                 }}
@@ -690,7 +734,10 @@ export default function App() {
               {[1, 2, 3, 4, 5].map((num) => (
                 <button
                   key={num}
-                  onClick={() => setSelectedEntrance(num)}
+                  onClick={() => {
+                    triggerHaptic("selection");
+                    setSelectedEntrance(num);
+                  }}
                   className={cls(
                     "px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all",
                     selectedEntrance === num
@@ -980,6 +1027,7 @@ export default function App() {
                           <button
                             onClick={() => {
                               if (hasChosen && !chosen) {
+                                triggerHaptic("error");
                                 showToast("Сначала отмените текущий голос, чтобы выбрать другой вариант");
                                 return;
                               }
@@ -1059,7 +1107,7 @@ export default function App() {
         <div className="pb-[env(safe-area-inset-bottom)] px-2">
           <div className="grid grid-cols-5 items-end">
             <button
-              onClick={() => setTab("bill")}
+              onClick={() => switchTab("bill")}
               className="py-2 flex flex-col items-center gap-0.5 transition-all"
             >
               <div className={cls("p-1.5 rounded-xl transition-all", tab === "bill" ? "text-violet-600 scale-110" : "text-slate-400")}>
@@ -1071,7 +1119,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setTab("house")}
+              onClick={() => switchTab("house")}
               className="py-2 flex flex-col items-center gap-0.5 transition-all"
             >
               <div className={cls("p-1.5 rounded-xl transition-all", tab === "house" ? "text-violet-600 scale-110" : "text-slate-400")}>
@@ -1084,7 +1132,7 @@ export default function App() {
 
             <div className="flex flex-col items-center justify-center relative -top-3">
               <button
-                onClick={() => setTab("requests")}
+                onClick={() => switchTab("requests")}
                 className={cls(
                   "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-all border-4 border-slate-50",
                   tab === "requests"
@@ -1100,7 +1148,7 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => setTab("chat")}
+              onClick={() => switchTab("chat")}
               className="py-2 flex flex-col items-center gap-0.5 transition-all"
             >
               <div className={cls("p-1.5 rounded-xl transition-all", tab === "chat" ? "text-violet-600 scale-110" : "text-slate-400")}>
@@ -1112,7 +1160,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setTab("polls")}
+              onClick={() => switchTab("polls")}
               className="py-2 flex flex-col items-center gap-0.5 transition-all"
             >
               <div className={cls("p-1.5 rounded-xl transition-all", tab === "polls" ? "text-violet-600 scale-110" : "text-slate-400")}>

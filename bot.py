@@ -7,6 +7,7 @@ BOT_TOKEN = os.getenv(
     "f9LHodD0cOL3QXIcBTnBfV2YEnl08DmZ2c9ZQjHYBp5N4L9_BJLQB6NQRMmm-Auv643i4pOWraAlUDyw7cXd"
 )
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://myhome-1-53f1.onrender.com")
+MAX_DEEP_LINK = "https://max.ru/t578_hakaton_max_bot?startapp=flat_8"
 API_BASE = "https://platform-api2.max.ru"
 
 headers = {
@@ -71,43 +72,25 @@ async def send_authorized(client: httpx.AsyncClient, chat_id, user_id):
         "Белгородская обл., г. Белгород, пр-кт Славы, д. 8, кв. 8\n\n"
         "🏠 Зарегистрированная недвижимость в собственности:\n"
         "Белгородская обл., г. Белгород, пр-кт Славы, д. 8, кв. 8\n\n"
-        "Нажмите на подтверждённый адрес ниже для запуска мини-приложения в MAX:"
+        "Нажмите на подтверждённый адрес ниже для открытия мини-приложения в MAX:"
     )
-
-    btn_variants = [
+    buttons = [
         [
-            [
-                {
-                    "type": "open_app",
-                    "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
-                    "url": WEBAPP_URL
-                }
-            ]
+            {
+                "type": "link",
+                "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть в MAX)",
+                "url": MAX_DEEP_LINK
+            }
         ],
         [
-            [
-                {
-                    "type": "open_app",
-                    "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
-                    "web_app": {"url": WEBAPP_URL}
-                }
-            ]
-        ],
-        [
-            [
-                {
-                    "type": "link",
-                    "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
-                    "url": WEBAPP_URL
-                }
-            ]
+            {
+                "type": "link",
+                "text": "🌐 Прямой вход (Web)",
+                "url": WEBAPP_URL
+            }
         ]
     ]
-
-    for btns in btn_variants:
-        res = await send_to_user_or_chat(client, chat_id, user_id, text, btns)
-        if res is not None and res.status_code == 200:
-            break
+    await send_to_user_or_chat(client, chat_id, user_id, text, buttons)
 
 async def answer_callback(client: httpx.AsyncClient, callback_id: str):
     try:
