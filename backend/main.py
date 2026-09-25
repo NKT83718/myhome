@@ -51,8 +51,8 @@ AUTO_ITEMS_INIT: List[Dict[str, Any]] = [
 def get_initial_bill():
     return {
         "period": "Сентябрь 2026",
-        "account": "4081-7810-9021",
-        "address": "Белгородская обл., г. Белгород, пр-кт Славы, д. 45",
+        "account": "4081-7810-0008",
+        "address": "Белгородская обл., г. Белгород, пр-кт Славы, д. 8, кв. 8",
         "paid": False,
         "paid_at": None,
         "receipt_label": None,
@@ -61,7 +61,7 @@ def get_initial_bill():
 
 def get_initial_house():
     return {
-        "address": "Белгородская обл., г. Белгород, пр-кт Славы, д. 45",
+        "address": "Белгородская обл., г. Белгород, пр-кт Славы, д. 8",
         "updated_at": "2026-09-19T09:10:00",
         "systems": [
             {"id": 1, "name": "Электроснабжение", "status": "Штатно", "badge": "ok"},
@@ -123,7 +123,7 @@ def get_initial_polls():
                 {"id": 1, "text": "Да", "votes": 13},
                 {"id": 2, "text": "Нет", "votes": 7}
             ],
-            "user_votes": {"flat_14": 1}
+            "user_votes": {"flat_8": 1}
         },
         {
             "id": 2,
@@ -340,7 +340,7 @@ def get_requests():
 async def create_request(
     category: str = Form(...),
     text: str = Form(...),
-    user_id: str = Form("flat_14"),
+    user_id: str = Form("flat_8"),
     photo: Optional[UploadFile] = File(None)
 ):
     counters["request"] += 1
@@ -398,7 +398,7 @@ def delete_chat(msg_id: int):
     raise HTTPException(status_code=404, detail="Сообщение не найдено")
 
 @app.get("/api/polls")
-def get_polls(user_id: str = Query("flat_14")):
+def get_polls(user_id: str = Query("flat_8")):
     out = []
     for p in polls_store:
         chosen = p["user_votes"].get(user_id)
@@ -422,7 +422,7 @@ def vote_poll(poll_id: int, body: PollVoteBody):
     raise HTTPException(status_code=404, detail="Опрос не найден")
 
 @app.delete("/api/polls/{poll_id}/vote")
-def unvote_poll(poll_id: int, user_id: str = Query("flat_14")):
+def unvote_poll(poll_id: int, user_id: str = Query("flat_8")):
     for p in polls_store:
         if p["id"] == poll_id:
             if p.get("is_closed", False):

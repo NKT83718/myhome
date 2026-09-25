@@ -83,7 +83,7 @@ checks:
     path: "/api/chat"
     role: "resident"
     body:
-      author: "Вы (кв. 14)"
+      author: "Вы (кв. 8)"
       text: "Подтверждаю проверку вентиляции."
     expected_status: [200]
     expected_response:
@@ -94,7 +94,7 @@ checks:
     path: "/api/polls"
     role: "resident"
     query_params:
-      user_id: "flat_14"
+      user_id: "flat_8"
     expected_status: [200]
     expected_response:
       type: "array"

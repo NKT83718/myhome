@@ -17,7 +17,7 @@ import {
   Camera
 } from "lucide-react";
 
-const USER_ID = "flat_14";
+const USER_ID = "flat_8";
 const apiOrigin = import.meta?.env?.VITE_API_ORIGIN || "";
 const API = `${apiOrigin}/api`;
 
@@ -314,7 +314,7 @@ export default function App() {
     const r = await fetch(`${API}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ author: "Вы (кв. 14)", text: newMsg }),
+      body: JSON.stringify({ author: "Вы (кв. 8)", text: newMsg }),
     });
     if (r.ok) {
       const msg = await r.json();
@@ -845,7 +845,7 @@ export default function App() {
           <div className="px-4 py-3 border-b border-slate-100 bg-white flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Общедомовой чат</div>
-              <div className="text-sm font-extrabold text-slate-900">пр-кт Славы, д. 45</div>
+              <div className="text-sm font-extrabold text-slate-900">пр-кт Славы, д. 8</div>
             </div>
             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
               Онлайн
@@ -1020,113 +1020,111 @@ export default function App() {
   }, [tab, bill, billAddOpen, serviceKey, isMeter, draft, house, requests, reqCategory, reqText, reqPhoto, chat, newMsg, polls, selectedEntrance, currentTimeStr]);
 
   return (
-    <div className="min-h-[100dvh] w-full bg-slate-100 text-slate-900 flex justify-center">
-      <div className="w-full max-w-[420px] min-h-[100dvh] bg-slate-50 relative flex flex-col shadow-2xl">
-        <header className="fixed top-0 inset-x-0 mx-auto w-full max-w-[420px] z-50 bg-violet-600 text-white shadow-md">
-          <div className="px-4 pt-[calc(10px+env(safe-area-inset-top))] pb-3 flex items-center justify-between">
+    <div className="w-full max-w-[420px] min-h-[100dvh] bg-slate-50 relative flex flex-col shadow-2xl">
+      <header className="fixed top-0 inset-x-0 mx-auto w-full max-w-[420px] z-50 bg-violet-600 text-white shadow-md">
+        <div className="px-4 pt-[calc(10px+env(safe-area-inset-top))] pb-3 flex items-center justify-between">
+          <button
+            onClick={resetAllData}
+            title="Сбросить все данные на первоначальные"
+            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all active:rotate-180"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+
+          <div className="text-center">
+            <div className="text-lg font-black tracking-tight leading-tight">МойДом</div>
+            <div className="text-[10px] text-white/80 font-medium leading-none mt-0.5">
+              Белгородская обл., пр-кт Славы, д. 8, кв. 8
+            </div>
+          </div>
+
+          <div className="w-8 h-8 flex items-center justify-center">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 ring-4 ring-emerald-400/20"></span>
+          </div>
+        </div>
+      </header>
+
+      {toast && (
+        <div className="toast-animate fixed top-[calc(60px+env(safe-area-inset-top))] inset-x-0 mx-auto w-[calc(100%-32px)] max-w-[388px] z-[70] bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-violet-400"></span>
+          <span className="flex-1">{toast}</span>
+        </div>
+      )}
+
+      <main className="w-full max-w-[420px] px-4 pt-[76px] pb-[calc(88px+env(safe-area-inset-bottom))]">
+        {content}
+      </main>
+
+      <nav className="fixed bottom-0 inset-x-0 mx-auto w-full max-w-[420px] z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="pb-[env(safe-area-inset-bottom)] px-2">
+          <div className="grid grid-cols-5 items-end">
             <button
-              onClick={resetAllData}
-              title="Сбросить все данные на первоначальные"
-              className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all active:rotate-180"
+              onClick={() => setTab("bill")}
+              className="py-2 flex flex-col items-center gap-0.5 transition-all"
             >
-              <RotateCcw className="w-4 h-4" />
+              <div className={cls("p-1.5 rounded-xl transition-all", tab === "bill" ? "text-violet-600 scale-110" : "text-slate-400")}>
+                <FileText className="w-5 h-5" />
+              </div>
+              <span className={cls("text-[10px] font-bold", tab === "bill" ? "text-violet-600" : "text-slate-400")}>
+                Счета
+              </span>
             </button>
 
-            <div className="text-center">
-              <div className="text-lg font-black tracking-tight leading-tight">МойДом</div>
-              <div className="text-[10px] text-white/80 font-medium leading-none mt-0.5">
-                Белгородская область, —, —
+            <button
+              onClick={() => setTab("house")}
+              className="py-2 flex flex-col items-center gap-0.5 transition-all"
+            >
+              <div className={cls("p-1.5 rounded-xl transition-all", tab === "house" ? "text-violet-600 scale-110" : "text-slate-400")}>
+                <Home className="w-5 h-5" />
               </div>
+              <span className={cls("text-[10px] font-bold", tab === "house" ? "text-violet-600" : "text-slate-400")}>
+                Дом
+              </span>
+            </button>
+
+            <div className="flex flex-col items-center justify-center relative -top-3">
+              <button
+                onClick={() => setTab("requests")}
+                className={cls(
+                  "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-all border-4 border-slate-50",
+                  tab === "requests"
+                    ? "bg-violet-700 shadow-violet-400/50 scale-105"
+                    : "bg-violet-600 shadow-violet-300 hover:bg-violet-700 active:scale-95"
+                )}
+              >
+                <Plus className="w-6 h-6 stroke-[3]" />
+              </button>
+              <span className={cls("text-[10px] font-extrabold mt-1", tab === "requests" ? "text-violet-600" : "text-slate-400")}>
+                Заявка
+              </span>
             </div>
 
-            <div className="w-8 h-8 flex items-center justify-center">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 ring-4 ring-emerald-400/20"></span>
-            </div>
-          </div>
-        </header>
-
-        {toast && (
-          <div className="toast-animate fixed top-[calc(60px+env(safe-area-inset-top))] inset-x-0 mx-auto w-[calc(100%-32px)] max-w-[388px] z-[70] bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-violet-400"></span>
-            <span className="flex-1">{toast}</span>
-          </div>
-        )}
-
-        <main className="flex-1 px-4 pt-[76px] pb-[calc(88px+env(safe-area-inset-bottom))] overflow-x-hidden">
-          {content}
-        </main>
-
-        <nav className="fixed bottom-0 inset-x-0 mx-auto w-full max-w-[420px] z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-          <div className="pb-[env(safe-area-inset-bottom)] px-2">
-            <div className="grid grid-cols-5 items-end">
-              <button
-                onClick={() => setTab("bill")}
-                className="py-2 flex flex-col items-center gap-0.5 transition-all"
-              >
-                <div className={cls("p-1.5 rounded-xl transition-all", tab === "bill" ? "text-violet-600 scale-110" : "text-slate-400")}>
-                  <FileText className="w-5 h-5" />
-                </div>
-                <span className={cls("text-[10px] font-bold", tab === "bill" ? "text-violet-600" : "text-slate-400")}>
-                  Счета
-                </span>
-              </button>
-
-              <button
-                onClick={() => setTab("house")}
-                className="py-2 flex flex-col items-center gap-0.5 transition-all"
-              >
-                <div className={cls("p-1.5 rounded-xl transition-all", tab === "house" ? "text-violet-600 scale-110" : "text-slate-400")}>
-                  <Home className="w-5 h-5" />
-                </div>
-                <span className={cls("text-[10px] font-bold", tab === "house" ? "text-violet-600" : "text-slate-400")}>
-                  Дом
-                </span>
-              </button>
-
-              <div className="flex flex-col items-center justify-center relative -top-3">
-                <button
-                  onClick={() => setTab("requests")}
-                  className={cls(
-                    "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-all border-4 border-slate-50",
-                    tab === "requests"
-                      ? "bg-violet-700 shadow-violet-400/50 scale-105"
-                      : "bg-violet-600 shadow-violet-300 hover:bg-violet-700 active:scale-95"
-                  )}
-                >
-                  <Plus className="w-6 h-6 stroke-[3]" />
-                </button>
-                <span className={cls("text-[10px] font-extrabold mt-1", tab === "requests" ? "text-violet-600" : "text-slate-400")}>
-                  Заявка
-                </span>
+            <button
+              onClick={() => setTab("chat")}
+              className="py-2 flex flex-col items-center gap-0.5 transition-all"
+            >
+              <div className={cls("p-1.5 rounded-xl transition-all", tab === "chat" ? "text-violet-600 scale-110" : "text-slate-400")}>
+                <MessageSquare className="w-5 h-5" />
               </div>
+              <span className={cls("text-[10px] font-bold", tab === "chat" ? "text-violet-600" : "text-slate-400")}>
+                Чат
+              </span>
+            </button>
 
-              <button
-                onClick={() => setTab("chat")}
-                className="py-2 flex flex-col items-center gap-0.5 transition-all"
-              >
-                <div className={cls("p-1.5 rounded-xl transition-all", tab === "chat" ? "text-violet-600 scale-110" : "text-slate-400")}>
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <span className={cls("text-[10px] font-bold", tab === "chat" ? "text-violet-600" : "text-slate-400")}>
-                  Чат
-                </span>
-              </button>
-
-              <button
-                onClick={() => setTab("polls")}
-                className="py-2 flex flex-col items-center gap-0.5 transition-all"
-              >
-                <div className={cls("p-1.5 rounded-xl transition-all", tab === "polls" ? "text-violet-600 scale-110" : "text-slate-400")}>
-                  <CheckSquare className="w-5 h-5" />
-                </div>
-                <span className={cls("text-[10px] font-bold", tab === "polls" ? "text-violet-600" : "text-slate-400")}>
-                  Опросы
-                </span>
-              </button>
-            </div>
+            <button
+              onClick={() => setTab("polls")}
+              className="py-2 flex flex-col items-center gap-0.5 transition-all"
+            >
+              <div className={cls("p-1.5 rounded-xl transition-all", tab === "polls" ? "text-violet-600 scale-110" : "text-slate-400")}>
+                <CheckSquare className="w-5 h-5" />
+              </div>
+              <span className={cls("text-[10px] font-bold", tab === "polls" ? "text-violet-600" : "text-slate-400")}>
+                Опросы
+              </span>
+            </button>
           </div>
-        </nav>
-      </div>
+        </div>
+      </nav>
     </div>
   );
 }
