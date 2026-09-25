@@ -21,9 +21,10 @@
     </script>
     <script>
       try {
-        if (window.vkBridge) {
-          window.vkBridge.send('VKWebAppInit');
-          window.vkBridge.send('VKWebAppExpand');
+        const bridge = window.vkBridge || window.maxBridge;
+        if (bridge) {
+          bridge.send('VKWebAppInit');
+          bridge.send('VKWebAppExpand');
         }
       } catch (e) {}
     </script>

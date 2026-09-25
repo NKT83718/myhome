@@ -23,12 +23,13 @@ async def send_msg(client: httpx.AsyncClient, target_params: dict, text: str, bu
                 "payload": {"buttons": buttons}
             }
         ]
-    return await client.post(
+    res = await client.post(
         f"{API_BASE}/messages",
         params=target_params,
         json=payload,
         headers=headers
     )
+    return res
 
 async def send_welcome(client: httpx.AsyncClient, target_params: dict):
     text = (
@@ -57,18 +58,29 @@ async def send_authorized(client: httpx.AsyncClient, target_params: dict):
         "Белгородская обл., г. Белгород, пр-кт Славы, д. 8, кв. 8\n\n"
         "🏠 Зарегистрированная недвижимость в собственности:\n"
         "Белгородская обл., г. Белгород, пр-кт Славы, д. 8, кв. 8\n\n"
-        "Нажмите на подтверждённый адрес ниже для запуска мини-приложения:"
+        "Нажмите на подтверждённый адрес ниже для запуска мини-приложения в MAX:"
     )
     buttons = [
         [
             {
-                "type": "link",
+                "type": "open_app",
                 "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
                 "url": WEBAPP_URL
             }
         ]
     ]
-    await send_msg(client, target_params, text, buttons)
+    res = await send_msg(client, target_params, text, buttons)
+    if res.status_code != 200:
+        alt_buttons = [
+            [
+                {
+                    "type": "open_app",
+                    "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
+                    "web_app": {"url": WEBAPP_URL}
+                }
+            ]
+        ]
+        await send_msg(client, target_params, text, alt_buttons)
 
 async def answer_callback(client: httpx.AsyncClient, callback_id: str):
     await client.post(
