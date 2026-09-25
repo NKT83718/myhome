@@ -14,7 +14,13 @@ headers = {
     "Content-Type": "application/json"
 }
 
-async def send_msg(client: httpx.AsyncClient, target_params: dict, text: str, buttons: list = None):
+async def send_to_user_or_chat(client: httpx.AsyncClient, chat_id, user_id, text: str, buttons: list = None):
+    targets = []
+    if chat_id:
+        targets.append({"chat_id": chat_id})
+    if user_id:
+        targets.append({"user_id": user_id})
+
     payload = {"text": text}
     if buttons:
         payload["attachments"] = [
@@ -23,15 +29,22 @@ async def send_msg(client: httpx.AsyncClient, target_params: dict, text: str, bu
                 "payload": {"buttons": buttons}
             }
         ]
-    res = await client.post(
-        f"{API_BASE}/messages",
-        params=target_params,
-        json=payload,
-        headers=headers
-    )
-    return res
 
-async def send_welcome(client: httpx.AsyncClient, target_params: dict):
+    for target in targets:
+        try:
+            r = await client.post(
+                f"{API_BASE}/messages",
+                params=target,
+                json=payload,
+                headers=headers
+            )
+            if r.status_code == 200:
+                return r
+        except Exception:
+            pass
+    return None
+
+async def send_welcome(client: httpx.AsyncClient, chat_id, user_id):
     text = (
         "👋 Добро пожаловать в единую цифровую систему управления МКД «МойДом»!\n\n"
         "Для доступа к вашим лицевым счетам, квитанциям ЖКУ, видеокамерам "
@@ -46,9 +59,9 @@ async def send_welcome(client: httpx.AsyncClient, target_params: dict):
             }
         ]
     ]
-    await send_msg(client, target_params, text, buttons)
+    await send_to_user_or_chat(client, chat_id, user_id, text, buttons)
 
-async def send_authorized(client: httpx.AsyncClient, target_params: dict):
+async def send_authorized(client: httpx.AsyncClient, chat_id, user_id):
     text = (
         "✅ Авторизация через Госуслуги успешно пройдена!\n\n"
         "📋 Данные подтверждённой учётной записи:\n"
@@ -60,18 +73,18 @@ async def send_authorized(client: httpx.AsyncClient, target_params: dict):
         "Белгородская обл., г. Белгород, пр-кт Славы, д. 8, кв. 8\n\n"
         "Нажмите на подтверждённый адрес ниже для запуска мини-приложения в MAX:"
     )
-    buttons = [
+
+    btn_variants = [
         [
-            {
-                "type": "open_app",
-                "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
-                "url": WEBAPP_URL
-            }
-        ]
-    ]
-    res = await send_msg(client, target_params, text, buttons)
-    if res.status_code != 200:
-        alt_buttons = [
+            [
+                {
+                    "type": "open_app",
+                    "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
+                    "url": WEBAPP_URL
+                }
+            ]
+        ],
+        [
             [
                 {
                     "type": "open_app",
@@ -79,16 +92,33 @@ async def send_authorized(client: httpx.AsyncClient, target_params: dict):
                     "web_app": {"url": WEBAPP_URL}
                 }
             ]
+        ],
+        [
+            [
+                {
+                    "type": "link",
+                    "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
+                    "url": WEBAPP_URL
+                }
+            ]
         ]
-        await send_msg(client, target_params, text, alt_buttons)
+    ]
+
+    for btns in btn_variants:
+        res = await send_to_user_or_chat(client, chat_id, user_id, text, btns)
+        if res is not None and res.status_code == 200:
+            break
 
 async def answer_callback(client: httpx.AsyncClient, callback_id: str):
-    await client.post(
-        f"{API_BASE}/answers",
-        params={"callback_id": callback_id},
-        json={"notification": "Авторизован"},
-        headers=headers
-    )
+    try:
+        await client.post(
+            f"{API_BASE}/answers",
+            params={"callback_id": callback_id},
+            json={"notification": "Успешно авторизовано через ЕСИА"},
+            headers=headers
+        )
+    except Exception:
+        pass
 
 async def main():
     marker = None
@@ -113,26 +143,25 @@ async def main():
                     for upd in updates:
                         upd_type = upd.get("update_type")
 
-                        if upd_type == "message_created":
+                        if upd_type == "bot_started":
+                            chat_id = upd.get("chat_id")
+                            user_id = upd.get("user", {}).get("user_id")
+                            await send_welcome(client, chat_id, user_id)
+
+                        elif upd_type == "message_created":
                             msg = upd.get("message", {})
                             body = msg.get("body", {})
                             text = body.get("text", "").strip()
-                            sender_id = msg.get("sender", {}).get("user_id")
-                            chat_id = msg.get("recipient", {}).get("chat_id")
+                            recipient = msg.get("recipient", {})
+                            chat_id = recipient.get("chat_id")
+                            user_id = msg.get("sender", {}).get("user_id")
 
-                            target = {}
-                            if chat_id:
-                                target["chat_id"] = chat_id
-                            elif sender_id:
-                                target["user_id"] = sender_id
-
-                            if target:
-                                if text.startswith("/start"):
-                                    await send_welcome(client, target)
-                                elif "госуслуг" in text.lower():
-                                    await send_authorized(client, target)
-                                else:
-                                    await send_welcome(client, target)
+                            if text.startswith("/start"):
+                                await send_welcome(client, chat_id, user_id)
+                            elif "войти" in text.lower() or "госуслуг" in text.lower():
+                                await send_authorized(client, chat_id, user_id)
+                            else:
+                                await send_welcome(client, chat_id, user_id)
 
                         elif upd_type == "message_callback":
                             cb = upd.get("callback", {})
@@ -140,15 +169,19 @@ async def main():
                             cb_payload = cb.get("payload")
                             user_id = cb.get("user", {}).get("user_id")
 
+                            msg = upd.get("message", {})
+                            recipient = msg.get("recipient", {})
+                            chat_id = recipient.get("chat_id")
+
                             if cb_id:
                                 await answer_callback(client, cb_id)
 
-                            if cb_payload == "auth_gosuslugi" and user_id:
-                                await send_authorized(client, {"user_id": user_id})
+                            if cb_payload == "auth_gosuslugi":
+                                await send_authorized(client, chat_id, user_id)
 
             except Exception:
                 await asyncio.sleep(2)
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.2)
 
 if __name__ == "__main__":
     asyncio.run(main())

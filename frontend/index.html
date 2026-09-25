@@ -20,13 +20,20 @@
       }
     </script>
     <script>
-      try {
-        const bridge = window.vkBridge || window.maxBridge;
-        if (bridge) {
-          bridge.send('VKWebAppInit');
-          bridge.send('VKWebAppExpand');
+      (function() {
+        function initBridge() {
+          var bridge = window.vkBridge || window.maxBridge;
+          if (bridge && bridge.send) {
+            bridge.send('VKWebAppInit');
+            bridge.send('VKWebAppExpand');
+          }
         }
-      } catch (e) {}
+        if (document.readyState === 'complete') {
+          initBridge();
+        } else {
+          window.addEventListener('load', initBridge);
+        }
+      })();
     </script>
   </head>
   <body class="bg-gray-50 text-gray-900 select-none">
