@@ -2,10 +2,10 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
     <title>МойДом</title>
-    <!-- CDN Tailwind CSS для моментальной Docker-сборки до 1 минуты -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -18,6 +18,14 @@
           }
         }
       }
+    </script>
+    <script>
+      try {
+        if (window.vkBridge) {
+          window.vkBridge.send('VKWebAppInit');
+          window.vkBridge.send('VKWebAppExpand');
+        }
+      } catch (e) {}
     </script>
   </head>
   <body class="bg-gray-50 text-gray-900 select-none">
