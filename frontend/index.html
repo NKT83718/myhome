@@ -21,15 +21,9 @@
     </script>
     <script>
       (function() {
-        function setupMaxApp() {
+        function activateBridge() {
           if (window.WebApp) {
             try {
-              if (typeof window.WebApp.ready === 'function') {
-                window.WebApp.ready();
-              }
-              if (typeof window.WebApp.expand === 'function') {
-                window.WebApp.expand();
-              }
               if (typeof window.WebApp.enableClosingConfirmation === 'function') {
                 window.WebApp.enableClosingConfirmation();
               }
@@ -37,9 +31,9 @@
           }
         }
         if (document.readyState === 'complete') {
-          setupMaxApp();
+          activateBridge();
         } else {
-          window.addEventListener('load', setupMaxApp);
+          window.addEventListener('load', activateBridge);
         }
       })();
     </script>

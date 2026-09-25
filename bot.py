@@ -7,13 +7,28 @@ BOT_TOKEN = os.getenv(
     "f9LHodD0cOL3QXIcBTnBfV2YEnl08DmZ2c9ZQjHYBp5N4L9_BJLQB6NQRMmm-Auv643i4pOWraAlUDyw7cXd"
 )
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://myhome-1-53f1.onrender.com")
-MAX_DEEP_LINK = "https://max.ru/t578_hakaton_max_bot?startapp=flat_8"
 API_BASE = "https://platform-api2.max.ru"
 
 headers = {
     "Authorization": BOT_TOKEN,
     "Content-Type": "application/json"
 }
+
+async def register_bot_app(client: httpx.AsyncClient):
+    probes = [
+        ("POST", f"{API_BASE}/me", {"web_app_url": WEBAPP_URL}),
+        ("PATCH", f"{API_BASE}/me", {"web_app_url": WEBAPP_URL}),
+        ("POST", f"{API_BASE}/setChatMenuButton", {"menu_button": {"type": "web_app", "text": "МойДом", "web_app": {"url": WEBAPP_URL}}}),
+        ("POST", f"{API_BASE}/apps", {"url": WEBAPP_URL})
+    ]
+    for method, url, body in probes:
+        try:
+            if method == "POST":
+                await client.post(url, json=body, headers=headers)
+            elif method == "PATCH":
+                await client.patch(url, json=body, headers=headers)
+        except Exception:
+            pass
 
 async def send_to_user_or_chat(client: httpx.AsyncClient, chat_id, user_id, text: str, buttons: list = None):
     targets = []
@@ -72,25 +87,43 @@ async def send_authorized(client: httpx.AsyncClient, chat_id, user_id):
         "Белгородская обл., г. Белгород, пр-кт Славы, д. 8, кв. 8\n\n"
         "🏠 Зарегистрированная недвижимость в собственности:\n"
         "Белгородская обл., г. Белгород, пр-кт Славы, д. 8, кв. 8\n\n"
-        "Нажмите на подтверждённый адрес ниже для открытия мини-приложения в MAX:"
+        "Нажмите на подтверждённый адрес ниже для запуска мини-приложения в MAX:"
     )
-    buttons = [
+
+    button_configs = [
         [
-            {
-                "type": "link",
-                "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть в MAX)",
-                "url": MAX_DEEP_LINK
-            }
+            [
+                {
+                    "type": "open_app",
+                    "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
+                    "url": WEBAPP_URL
+                }
+            ]
         ],
         [
-            {
-                "type": "link",
-                "text": "🌐 Прямой вход (Web)",
-                "url": WEBAPP_URL
-            }
+            [
+                {
+                    "type": "open_app",
+                    "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
+                    "web_app": {"url": WEBAPP_URL}
+                }
+            ]
+        ],
+        [
+            [
+                {
+                    "type": "link",
+                    "text": "🏢 пр-кт Славы, д. 8, кв. 8 (Открыть МойДом)",
+                    "url": WEBAPP_URL
+                }
+            ]
         ]
     ]
-    await send_to_user_or_chat(client, chat_id, user_id, text, buttons)
+
+    for btns in button_configs:
+        res = await send_to_user_or_chat(client, chat_id, user_id, text, btns)
+        if res is not None and res.status_code == 200:
+            break
 
 async def answer_callback(client: httpx.AsyncClient, callback_id: str):
     try:
@@ -106,6 +139,8 @@ async def answer_callback(client: httpx.AsyncClient, callback_id: str):
 async def main():
     marker = None
     async with httpx.AsyncClient(verify=False, timeout=35) as client:
+        await register_bot_app(client)
+
         while True:
             try:
                 params = {"timeout": 20}
