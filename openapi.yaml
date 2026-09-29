@@ -1,0 +1,734 @@
+openapi: 3.1.0
+info:
+  title: МойДом — REST API
+  version: 1.0.0
+  description: REST API демонстрационного сервиса «МойДом». API предназначен для воспроизводимой проверки основных пользовательских
+    сценариев на тестовых данных многоквартирного дома.
+paths:
+  /api/reset:
+    post:
+      summary: Сбросить демонстрационные данные
+      operationId: reset_all_api_reset_post
+      responses:
+        '200':
+          description: Состояние сброшено.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Возвращает все демонстрационные данные к исходному состоянию.
+  /api/bill:
+    get:
+      summary: Получить лицевой счёт
+      operationId: get_bill_api_bill_get
+      responses:
+        '200':
+          description: Текущий счёт.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+        '404':
+          description: Ресурс не найден.
+      description: Возвращает начисления, состояние оплаты и тестовый чек.
+  /api/bill/items:
+    post:
+      summary: Добавить услугу
+      operationId: add_user_bill_item_api_bill_items_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserBillItemCreate'
+        required: true
+      responses:
+        '200':
+          description: Счёт после добавления услуги.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Добавляет тестовую пользовательскую услугу в счёт.
+  /api/bill/items/{item_id}:
+    patch:
+      summary: Изменить услугу
+      operationId: patch_user_bill_item_api_bill_items__item_id__patch
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Item Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserBillItemPatch'
+      responses:
+        '200':
+          description: Счёт после изменения услуги.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Изменяет тариф, количество или текущее показание пользовательской услуги.
+    delete:
+      summary: Удалить услугу
+      operationId: delete_user_bill_item_api_bill_items__item_id__delete
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Item Id
+      responses:
+        '200':
+          description: Счёт после удаления услуги.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Удаляет пользовательскую услугу из счёта.
+  /api/bill/pay:
+    post:
+      summary: Оплатить счёт
+      operationId: pay_bill_api_bill_pay_post
+      responses:
+        '200':
+          description: Оплаченный счёт.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Переводит демонстрационный счёт в состояние paid и формирует тестовый номер чека.
+  /api/house:
+    get:
+      summary: Получить сведения о доме
+      operationId: get_house_api_house_get
+      responses:
+        '200':
+          description: Сведения о доме.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/House'
+        '404':
+          description: Ресурс не найден.
+      description: Возвращает тестовое состояние инженерных систем и вывоза ТКО.
+  /api/requests:
+    get:
+      summary: Получить заявки
+      operationId: get_requests_api_requests_get
+      responses:
+        '200':
+          description: Список заявок.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Request'
+        '404':
+          description: Ресурс не найден.
+      description: Возвращает список заявок жителей.
+    post:
+      summary: Создать заявку
+      operationId: create_request_api_requests_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_create_request_api_requests_post'
+        required: true
+      responses:
+        '200':
+          description: Созданная заявка.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - request
+                properties:
+                  success:
+                    type: boolean
+                  request:
+                    $ref: '#/components/schemas/Request'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Создаёт заявку АДС; поддерживает фото в multipart/form-data.
+  /api/requests/{req_id}:
+    delete:
+      summary: Удалить заявку
+      operationId: delete_request_api_requests__req_id__delete
+      parameters:
+      - name: req_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Req Id
+      responses:
+        '200':
+          description: Результат удаления.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Удаляет тестовую заявку.
+  /api/chat:
+    get:
+      summary: Получить чат
+      operationId: get_chat_api_chat_get
+      responses:
+        '200':
+          description: Список сообщений.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMessage'
+        '404':
+          description: Ресурс не найден.
+      description: Возвращает сообщения общедомового чата.
+    post:
+      summary: Добавить сообщение
+      operationId: post_chat_api_chat_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageCreate'
+        required: true
+      responses:
+        '200':
+          description: Созданное сообщение.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Добавляет сообщение жителя в тестовый чат.
+  /api/chat/{msg_id}:
+    delete:
+      summary: Удалить сообщение
+      operationId: delete_chat_api_chat__msg_id__delete
+      parameters:
+      - name: msg_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Msg Id
+      responses:
+        '200':
+          description: Результат удаления.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Удаляет собственное тестовое сообщение.
+  /api/polls:
+    get:
+      summary: Получить голосования
+      operationId: get_polls_api_polls_get
+      parameters:
+      - name: user_id
+        in: query
+        required: false
+        schema:
+          type: string
+          default: flat_8
+          title: User Id
+      responses:
+        '200':
+          description: Список голосований.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Poll'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '404':
+          description: Ресурс не найден.
+      description: Возвращает голосования с выбранным вариантом пользователя.
+  /api/polls/{poll_id}/vote:
+    post:
+      summary: Проголосовать
+      operationId: vote_poll_api_polls__poll_id__vote_post
+      parameters:
+      - name: poll_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Poll Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollVoteBody'
+      responses:
+        '200':
+          description: Голос принят.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Регистрирует голос тестового пользователя.
+    delete:
+      summary: Отменить голос
+      operationId: unvote_poll_api_polls__poll_id__vote_delete
+      parameters:
+      - name: poll_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Poll Id
+      - name: user_id
+        in: query
+        required: false
+        schema:
+          type: string
+          default: flat_8
+          title: User Id
+      responses:
+        '200':
+          description: Голос отменён.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Некорректная операция или состояние данных.
+        '404':
+          description: Ресурс не найден.
+      description: Отменяет голос тестового пользователя.
+components:
+  schemas:
+    Body_create_request_api_requests_post:
+      properties:
+        category:
+          type: string
+          title: Category
+        text:
+          type: string
+          title: Text
+        user_id:
+          type: string
+          title: User Id
+          default: flat_8
+        photo:
+          anyOf:
+          - type: string
+            format: binary
+          - type: 'null'
+          title: Photo
+      type: object
+      required:
+      - category
+      - text
+      title: Body_create_request_api_requests_post
+    ChatMessageCreate:
+      properties:
+        author:
+          type: string
+          title: Author
+        text:
+          type: string
+          title: Text
+      type: object
+      required:
+      - author
+      - text
+      title: ChatMessageCreate
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    PollVoteBody:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        option_id:
+          type: integer
+          title: Option Id
+      type: object
+      required:
+      - user_id
+      - option_id
+      title: PollVoteBody
+    UserBillItemCreate:
+      properties:
+        name:
+          type: string
+          title: Name
+        item_type:
+          type: string
+          enum:
+          - fixed
+          - meter
+          title: Item Type
+        unit:
+          type: string
+          title: Unit
+        tariff:
+          type: number
+          minimum: 0.0
+          title: Tariff
+        quantity:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Quantity
+        prev_reading:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Prev Reading
+        current_reading:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Current Reading
+      type: object
+      required:
+      - name
+      - item_type
+      - unit
+      - tariff
+      title: UserBillItemCreate
+    UserBillItemPatch:
+      properties:
+        tariff:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Tariff
+        quantity:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Quantity
+        current_reading:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Current Reading
+      type: object
+      title: UserBillItemPatch
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    BillItem:
+      type: object
+      required:
+      - id
+      - name
+      - item_type
+      - unit
+      - sum
+      - locked
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        item_type:
+          type: string
+        unit:
+          type: string
+        sum:
+          type: number
+        locked:
+          type: boolean
+        tariff:
+          type: number
+        quantity:
+          type: number
+        prev_reading:
+          type: number
+        current_reading:
+          type: number
+    Bill:
+      type: object
+      required:
+      - period
+      - account
+      - address
+      - paid
+      - items
+      - total_sum
+      properties:
+        period:
+          type: string
+        account:
+          type: string
+        address:
+          type: string
+        paid:
+          type: boolean
+        paid_at:
+          type:
+          - string
+          - 'null'
+        receipt_label:
+          type:
+          - string
+          - 'null'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillItem'
+        total_sum:
+          type: number
+        paid_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillItem'
+        paid_total:
+          type: number
+    House:
+      type: object
+      required:
+      - address
+      - updated_at
+      - systems
+      - waste
+      properties:
+        address:
+          type: string
+        updated_at:
+          type: string
+          description: Может отсутствовать в текущей демонстрационной реализации; поле зарезервировано схемой проверки.
+        systems:
+          type: array
+          items:
+            type: object
+        waste:
+          type: object
+    Request:
+      type: object
+      required:
+      - id
+      - created_at
+      - category
+      - text
+      - status
+      - user_id
+      - photo_url
+      properties:
+        id:
+          type: integer
+        created_at:
+          type: string
+        category:
+          type: string
+        text:
+          type: string
+        status:
+          type: string
+        user_id:
+          type: string
+        photo_url:
+          type:
+          - string
+          - 'null'
+    ChatMessage:
+      type: object
+      required:
+      - id
+      - created_at
+      - author
+      - text
+      properties:
+        id:
+          type: integer
+        created_at:
+          type: string
+        author:
+          type: string
+        text:
+          type: string
+    Poll:
+      type: object
+      required:
+      - id
+      - title
+      - deadline
+      - is_closed
+      - options
+      - user_votes
+      - chosen_option_id
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        deadline:
+          type: string
+        is_closed:
+          type: boolean
+        options:
+          type: array
+          items:
+            type: object
+        user_votes:
+          type: object
+        chosen_option_id:
+          type:
+          - integer
+          - 'null'
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+servers:
+- url: https://myhome-eqju.onrender.com
+  description: Основной HTTPS-адрес проверки
+- url: http://localhost:8000
+  description: Локальный Docker API
+- url: https://myhome-eqju.onrender.com
+  description: Ранее указанный в README адрес; используйте только если он активен

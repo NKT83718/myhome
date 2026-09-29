@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+    <title>МойДом</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://st.max.ru/js/max-web-app.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              maxPurple: '#6C38FF',
+              maxLightPurple: '#F3EEFF',
+              maxBlue: '#0085FF'
+            }
+          }
+        }
+      }
+    </script>
+    <script>
+      (function() {
+        function activateBridge() {
+          if (window.WebApp) {
+            try {
+              if (typeof window.WebApp.enableClosingConfirmation === 'function') {
+                window.WebApp.enableClosingConfirmation();
+              }
+            } catch (e) {}
+          }
+        }
+        if (document.readyState === 'complete') {
+          activateBridge();
+        } else {
+          window.addEventListener('load', activateBridge);
+        }
+      })();
+    </script>
+  </head>
+
+  <body class="bg-gray-50 text-gray-900 select-none">
+    <div id="auth-lock" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:999999;background-color:#f9fafb;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <h2 style="font-size:20px;font-weight:700;margin:0 0 8px 0;color:#111827;">Доступ ограничен</h2>
+      <p style="font-size:14px;color:#6b7280;line-height:1.5;margin:0 0 20px 0;max-width:320px;">Для доступа к системе «МойДом» необходимо подтвердить личность через Госуслуги в чате с ботом.</p>
+      <div style="background:#e5e7eb;color:#374151;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:500;">Вернитесь в чат и подтвердите личность</div>
+    </div>
+
+    <div id="root"></div>
+
+    <script>
+      (function() {
+        var AUTH_API = "https://myhome-api-9hhr.onrender.com";
+
+        try {
+          localStorage.removeItem("myhome_access");
+          localStorage.removeItem("myhome_authorized");
+          localStorage.removeItem("myhome_auth_state");
+          localStorage.removeItem("myhome_app_auth");
+        } catch (e) {}
+
+        function setLocked(locked) {
+          var el = document.getElementById("auth-lock");
+          if (!el) return;
+          el.style.display = locked ? "flex" : "none";
+        }
+
+        function isInsideMax() {
+          try {
+            if (!window.WebApp) return false;
+            if (window.WebApp.initData && String(window.WebApp.initData).length > 0) return true;
+            if (window.WebApp.initDataUnsafe && window.WebApp.initDataUnsafe.user) return true;
+            if (window.WebApp.platform && window.WebApp.platform !== "unknown") return true;
+          } catch (e) {}
+          return false;
+        }
+
+        function getUserId() {
+          try {
+            var unsafe = window.WebApp && window.WebApp.initDataUnsafe ? window.WebApp.initDataUnsafe : null;
+            if (unsafe && unsafe.user) {
+              if (unsafe.user.id) return String(unsafe.user.id);
+              if (unsafe.user.user_id) return String(unsafe.user.user_id);
+            }
+          } catch (e) {}
+          try {
+            var raw = window.WebApp && window.WebApp.initData ? String(window.WebApp.initData) : "";
+            if (raw) {
+              var p = new URLSearchParams(raw);
+              var u = p.get("user");
+              if (u) {
+                var obj = JSON.parse(u);
+                if (obj && (obj.id || obj.user_id)) return String(obj.id || obj.user_id);
+              }
+            }
+          } catch (e) {}
+          try {
+            var q = new URLSearchParams(window.location.search);
+            return q.get("uid") || q.get("user_id") || null;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        async function isActive(uid) {
+          var url = AUTH_API + "/api/auth?uid=" + encodeURIComponent(uid) + "&t=" + Date.now();
+          var res = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+          if (!res.ok) return false;
+          var data = await res.json();
+          return !!(data && data.active);
+        }
+
+        async function resolveMax(uid) {
+          if (!uid) {
+            setLocked(true);
+            return;
+          }
+          try {
+            var ok = await isActive(uid);
+            setLocked(!ok);
+          } catch (e) {
+            setLocked(true);
+          }
+        }
+
+        function boot() {
+          var tries = 0;
+
+          function tick() {
+            var uid = getUserId();
+            if (uid) {
+              setLocked(true);
+              resolveMax(uid);
+              return;
+            }
+
+            tries += 1;
+            if (tries < 20) {
+              setTimeout(tick, 150);
+              return;
+            }
+
+            if (isInsideMax()) {
+              setLocked(true);
+            } else {
+              setLocked(false);
+            }
+          }
+
+          tick();
+        }
+
+        boot();
+        window.addEventListener("DOMContentLoaded", boot);
+        window.addEventListener("load", boot);
+      })();
+    </script>
+
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

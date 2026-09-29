@@ -1,0 +1,194 @@
+# DATA-API.yaml — формальная карта обязательных проверок
+# Версия конфигурации этого файла: 1.0.0
+schema_version: "1.0.0"
+solution_id: "myhome"
+solution_name: "МойДом"
+team_id: "myhome"
+api_version: "1.0.0"
+base_url: "https://myhome-eqju.onrender.com"
+alternate_documented_url: "https://myhome-eqju.onrender.com"
+local_base_url: "http://localhost:8000"
+openapi_file: "openapi.yaml"
+test_accounts_file: "test-data/accounts.yaml"
+test_data_file: "test-data/test-data.json"
+
+# Роли указаны для каждой обязательной проверки.
+# В демонстрационной API-аутентификации нет: resident — тестовая роль/идентификатор,
+# используемый в запросах. Административная роль не требуется ни для одного обязательного сценария.
+checks:
+  - id: "bill-read"
+    description: "Получение текущих начислений"
+    method: "GET"
+    path: "/api/bill"
+    role: "resident"
+    parameters:
+      query: {}
+      path: {}
+      headers: {}
+      body: null
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["period", "account", "address", "paid", "items", "total_sum"]
+      properties:
+        period: {type: "string"}
+        account: {type: "string"}
+        address: {type: "string"}
+        paid: {type: "boolean"}
+        items: {type: "array"}
+        total_sum: {type: "number"}
+
+  - id: "bill-item-create"
+    description: "Добавление пользовательской услуги в счёт"
+    method: "POST"
+    path: "/api/bill/items"
+    role: "resident"
+    parameters:
+      query: {}
+      path: {}
+      headers:
+        Content-Type: "application/json"
+      body:
+        name: "Полив придомовой территории"
+        item_type: "fixed"
+        unit: "м³"
+        tariff: 44.5
+        quantity: 2.0
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["items", "total_sum"]
+
+  - id: "bill-pay"
+    description: "Тестовая оплата начислений"
+    method: "POST"
+    path: "/api/bill/pay"
+    role: "resident"
+    parameters:
+      query: {}
+      path: {}
+      headers: {}
+      body: null
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["paid", "receipt_label", "total_sum"]
+      properties:
+        paid: {type: "boolean"}
+        receipt_label: {type: "string"}
+        total_sum: {type: "number"}
+
+  - id: "house-read"
+    description: "Получение состояния дома"
+    method: "GET"
+    path: "/api/house"
+    role: "resident"
+    parameters:
+      query: {}
+      path: {}
+      headers: {}
+      body: null
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["address", "updated_at", "systems", "waste"]
+      properties:
+        address: {type: "string"}
+        updated_at: {type: "string"}
+        systems: {type: "array"}
+        waste: {type: "object"}
+
+  - id: "requests-read"
+    description: "Получение заявок АДС"
+    method: "GET"
+    path: "/api/requests"
+    role: "resident"
+    parameters:
+      query: {}
+      path: {}
+      headers: {}
+      body: null
+    expected_status: [200]
+    expected_response:
+      type: "array"
+
+  - id: "chat-read"
+    description: "Получение общедомового чата"
+    method: "GET"
+    path: "/api/chat"
+    role: "resident"
+    parameters:
+      query: {}
+      path: {}
+      headers: {}
+      body: null
+    expected_status: [200]
+    expected_response:
+      type: "array"
+
+  - id: "chat-create"
+    description: "Отправка сообщения в общедомовой чат"
+    method: "POST"
+    path: "/api/chat"
+    role: "resident"
+    parameters:
+      query: {}
+      path: {}
+      headers:
+        Content-Type: "application/json"
+      body:
+        author: "Вы (кв. 8)"
+        text: "Подтверждаю проверку вентиляции."
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["id", "created_at", "author", "text"]
+
+  - id: "polls-read"
+    description: "Получение голосований для тестового жителя"
+    method: "GET"
+    path: "/api/polls"
+    role: "resident"
+    parameters:
+      query:
+        user_id: "flat_8"
+      path: {}
+      headers: {}
+      body: null
+    expected_status: [200]
+    expected_response:
+      type: "array"
+
+  - id: "poll-vote"
+    description: "Голосование в активном опросе"
+    method: "POST"
+    path: "/api/polls/{poll_id}/vote"
+    role: "resident"
+    parameters:
+      query: {}
+      path:
+        poll_id: 2
+      headers:
+        Content-Type: "application/json"
+      body:
+        user_id: "flat_8"
+        option_id: 1
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["success"]
+
+  - id: "reset"
+    description: "Сброс тестового состояния перед повторяемой проверкой"
+    method: "POST"
+    path: "/api/reset"
+    role: "resident"
+    parameters:
+      query: {}
+      path: {}
+      headers: {}
+      body: null
+    expected_status: [200]
+    expected_response:
+      type: "object"
+      required: ["success", "message"]

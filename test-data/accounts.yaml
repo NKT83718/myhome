@@ -1,0 +1,14 @@
+# Тестовые учётные записи для обязательных сценариев
+# API демонстрационная и не требует пароля/токена для resident.
+# Идентификатор flat_8 используется в query/body там, где endpoint требует пользователя.
+accounts:
+  - id: "flat_8"
+    username: "resident_flat_8"
+    role: "resident"
+    apartment: 8
+    auth_mode: "demo-no-auth"
+    note: "Единственная роль, необходимая для обязательных проверок DATA-API.yaml."
+roles:
+  - id: "resident"
+    purpose: "Проверка пользовательских сценариев: начисления, дом, заявки, чат, голосования."
+admin_access_required: false
