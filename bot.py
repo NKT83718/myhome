@@ -2,11 +2,10 @@ import os
 import asyncio
 import httpx
 
-BOT_TOKEN = os.getenv(
-    "MAX_BOT_TOKEN"
-)
+BOT_TOKEN = os.getenv("MAX_BOT_TOKEN", "").strip()
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://myhome-1-53f1.onrender.com")
-AUTH_API_URL = os.getenv("AUTH_API_URL", "https://myhome-api-9hhr.onrender.com")
+LOCAL_API = f"http://127.0.0.1:{os.getenv('PORT', '8000')}"
+AUTH_API_URL = os.getenv("AUTH_API_URL", LOCAL_API)
 API_BASE = "https://platform-api2.max.ru"
 
 headers = {
@@ -41,7 +40,7 @@ async def health_handler(reader, writer):
         pass
 
 async def start_health_server():
-    port = int(os.getenv("PORT", "10000"))
+    port = int(os.getenv("HEALTH_PORT", "10000"))
     server = await asyncio.start_server(health_handler, "0.0.0.0", port)
     async with server:
         await server.serve_forever()

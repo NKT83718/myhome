@@ -19,7 +19,8 @@ app.add_middleware(
 )
 
 BASE_DIR = Path(__file__).parent
-UPLOADS_DIR = BASE_DIR / "uploads"
+
+UPLOADS_DIR = Path(os.getenv("UPLOADS_DIR", "/tmp/uploads"))
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
@@ -485,3 +486,22 @@ if os.path.exists(frontend_dist):
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return FileResponse(file_path)
         return FileResponse(os.path.join(frontend_dist, "index.html"))
+
+from fastapi import Request
+
+_auth_store: dict[str, bool] = {}
+
+@app.get("/api/auth")
+def api_auth_get(uid: str = ""):
+    uid = str(uid or "")
+    return {"active": bool(_auth_store.get(uid, False))}
+
+@app.post("/api/auth")
+async def api_auth_post(req: Request):
+    data = await req.json()
+    uid = str(data.get("uid") or "")
+    active = bool(data.get("active"))
+    if not uid:
+        raise HTTPException(status_code=400, detail="uid is required")
+    _auth_store[uid] = active
+    return {"ok": True, "active": active}
