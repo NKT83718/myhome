@@ -2,7 +2,8 @@ import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Literal, Dict, Any, List
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -19,7 +20,9 @@ app.add_middleware(
 )
 
 BASE_DIR = Path(__file__).parent
-UPLOADS_DIR = BASE_DIR / "uploads"
+
+# В облаке (Render) безопаснее писать во временную директорию (/tmp)
+UPLOADS_DIR = Path(os.getenv("UPLOADS_DIR", "/tmp/uploads"))
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
@@ -59,13 +62,14 @@ def get_initial_bill():
         "receipt_label": None,
         "user_items": [],
         "paid_items": [],
-        "paid_total": 0.0
+        "paid_total": 0.0,
     }
 
 
 def get_initial_house():
     return {
         "address": "Белгородская обл., г. Белгород, пр-кт Славы, д. 8",
+        "updated_at": ts(),
         "systems": [
             {"id": 1, "name": "Электроснабжение", "status": "работает", "badge": "ok"},
             {"id": 2, "name": "Лифт", "status": "работает", "badge": "ok"},
@@ -77,8 +81,8 @@ def get_initial_house():
         ],
         "waste": {
             "tko_schedule": "Пн, Ср, Пт, ежедневно 09:00",
-            "containers_status": "работает"
-        }
+            "containers_status": "работает",
+        },
     }
 
 
@@ -88,32 +92,32 @@ def get_initial_chat():
             "id": 1,
             "created_at": "2026-09-19T08:15:00",
             "author": "ООО «Уютный Дом»",
-            "text": "Уважаемые жители! Сегодня с 10:00 до 12:00 будет проводиться плановая промывка систем водоснабжения в подъезде."
+            "text": "Уважаемые жители! Сегодня с 10:00 до 12:00 будет проводиться плановая промывка систем водоснабжения в подъезде.",
         },
         {
             "id": 2,
             "created_at": "2026-09-19T08:22:10",
             "author": "Елена (кв. 18)",
-            "text": "Добрый день! Подскажите, работы затронут все подъезды или только первый?"
+            "text": "Добрый день! Подскажите, работы затронут все подъезды или только первый?",
         },
         {
             "id": 3,
             "created_at": "2026-09-19T08:24:45",
             "author": "Дмитрий (кв. 42)",
-            "text": "Здравствуйте! У нас в 3 подъезде всё работает, напор отличный."
+            "text": "Здравствуйте! У нас в 3 подъезде всё работает, напор отличный.",
         },
         {
             "id": 4,
             "created_at": "2026-09-19T08:30:00",
             "author": "Председатель совета",
-            "text": "Напоминаю, что передача показаний индивидуальных приборов учета открыта до 25 числа."
+            "text": "Напоминаю, что передача показаний индивидуальных приборов учета открыта до 25 числа.",
         },
         {
             "id": 5,
             "created_at": "2026-09-19T08:35:12",
             "author": "Ольга (кв. 7)",
-            "text": "Спасибо за информацию!"
-        }
+            "text": "Спасибо за информацию!",
+        },
     ]
 
 
@@ -126,9 +130,9 @@ def get_initial_polls():
             "is_closed": True,
             "options": [
                 {"id": 1, "text": "Да", "votes": 13},
-                {"id": 2, "text": "Нет", "votes": 7}
+                {"id": 2, "text": "Нет", "votes": 7},
             ],
-            "user_votes": {"flat_8": 1}
+            "user_votes": {"flat_8": 1},
         },
         {
             "id": 2,
@@ -137,9 +141,9 @@ def get_initial_polls():
             "is_closed": False,
             "options": [
                 {"id": 1, "text": "Да", "votes": 8},
-                {"id": 2, "text": "Нет", "votes": 2}
+                {"id": 2, "text": "Нет", "votes": 2},
             ],
-            "user_votes": {}
+            "user_votes": {},
         },
         {
             "id": 3,
@@ -148,10 +152,10 @@ def get_initial_polls():
             "is_closed": False,
             "options": [
                 {"id": 1, "text": "Да", "votes": 11},
-                {"id": 2, "text": "Нет", "votes": 1}
+                {"id": 2, "text": "Нет", "votes": 1},
             ],
-            "user_votes": {}
-        }
+            "user_votes": {},
+        },
     ]
 
 
@@ -161,6 +165,9 @@ requests_store: List[Dict[str, Any]] = []
 chat_store: List[Dict[str, Any]] = get_initial_chat()
 polls_store: List[Dict[str, Any]] = get_initial_polls()
 counters = {"user_item_id": 100, "request": 0, "chat": 5, "receipt": 0}
+
+# Auth-store (вместо server.cjs). Для демо — в памяти.
+_auth_store: Dict[str, bool] = {}
 
 
 class UserBillItemCreate(BaseModel):
@@ -214,7 +221,7 @@ def make_receipt_label() -> str:
 
 @app.post("/api/reset")
 def reset_all():
-    global bill_state, house_store, requests_store, chat_store, polls_store, counters
+    global bill_state, house_store, requests_store, chat_store, polls_store, counters, _auth_store
     bill_state = get_initial_bill()
     house_store = get_initial_house()
     requests_store = []
@@ -224,6 +231,7 @@ def reset_all():
     counters["request"] = 0
     counters["chat"] = 5
     counters["receipt"] = 0
+    _auth_store = {}
     return {"success": True, "message": "Все данные успешно сброшены к начальным значениям"}
 
 
@@ -240,7 +248,7 @@ def get_bill():
             "items": [],
             "total_sum": 0.0,
             "paid_items": bill_state.get("paid_items", []),
-            "paid_total": bill_state.get("paid_total", 0.0)
+            "paid_total": bill_state.get("paid_total", 0.0),
         }
     items = []
     for a in AUTO_ITEMS_INIT:
@@ -257,7 +265,7 @@ def get_bill():
         "items": items,
         "total_sum": calc_total_unpaid(),
         "paid_items": [],
-        "paid_total": 0.0
+        "paid_total": 0.0,
     }
 
 
@@ -275,7 +283,7 @@ def add_user_bill_item(body: UserBillItemCreate):
             "unit": body.unit,
             "tariff": float(body.tariff),
             "quantity": float(body.quantity),
-            "locked": False
+            "locked": False,
         }
     else:
         if body.prev_reading is None:
@@ -289,7 +297,7 @@ def add_user_bill_item(body: UserBillItemCreate):
             "tariff": float(body.tariff),
             "prev_reading": float(body.prev_reading),
             "current_reading": float(curr),
-            "locked": False
+            "locked": False,
         }
     counters["user_item_id"] = item["id"]
     bill_state["user_items"].append(item)
@@ -339,7 +347,7 @@ def pay_bill():
 
     total = calc_total_unpaid()
     label = make_receipt_label()
-    
+
     msk_tz = timezone(timedelta(hours=3))
     now_str = datetime.now(msk_tz).strftime("%d.%m.%Y %H:%M:%S")
 
@@ -355,6 +363,8 @@ def pay_bill():
 
 @app.get("/api/house")
 def get_house():
+    # обновляем метку времени (для схемы проверок)
+    house_store["updated_at"] = ts()
     return house_store
 
 
@@ -368,7 +378,7 @@ async def create_request(
     category: str = Form(...),
     text: str = Form(...),
     user_id: str = Form("flat_8"),
-    photo: Optional[UploadFile] = File(None)
+    photo: Optional[UploadFile] = File(None),
 ):
     counters["request"] += 1
     req_id = counters["request"]
@@ -387,7 +397,7 @@ async def create_request(
         "text": text,
         "status": "Принята в обработку",
         "user_id": user_id,
-        "photo_url": photo_url
+        "photo_url": photo_url,
     }
     requests_store.append(item)
     return {"success": True, "request": item}
@@ -412,7 +422,7 @@ def post_chat(msg: ChatMessageCreate):
         "id": counters["chat"],
         "created_at": ts(),
         "author": msg.author,
-        "text": msg.text
+        "text": msg.text,
     }
     chat_store.append(item)
     return item
@@ -447,7 +457,10 @@ def vote_poll(poll_id: int, body: PollVoteBody):
                 raise HTTPException(status_code=400, detail="Голосование уже завершено")
             prev = p["user_votes"].get(body.user_id)
             if prev is not None:
-                raise HTTPException(status_code=400, detail="Сначала отмените текущий голос, чтобы выбрать другой вариант")
+                raise HTTPException(
+                    status_code=400,
+                    detail="Сначала отмените текущий голос, чтобы выбрать другой вариант",
+                )
             for opt in p["options"]:
                 if opt["id"] == body.option_id:
                     opt["votes"] += 1
@@ -473,6 +486,25 @@ def unvote_poll(poll_id: int, user_id: str = Query("flat_8")):
     raise HTTPException(status_code=404, detail="Опрос не найден")
 
 
+# --- Auth API (вместо server.cjs) ---
+@app.get("/api/auth")
+def api_auth_get(uid: str = ""):
+    uid = str(uid or "")
+    return {"active": bool(_auth_store.get(uid, False))}
+
+
+@app.post("/api/auth")
+async def api_auth_post(req: Request):
+    data = await req.json()
+    uid = str(data.get("uid") or "")
+    active = bool(data.get("active"))
+    if not uid:
+        raise HTTPException(status_code=400, detail="uid is required")
+    _auth_store[uid] = active
+    return {"ok": True, "active": active}
+
+
+# (фронтенд блок оставляем — он сам не включится, если frontend/dist не существует)
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
 if os.path.exists(frontend_dist):
     assets_path = os.path.join(frontend_dist, "assets")
